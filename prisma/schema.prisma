@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Post {
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  mediaUrl       String?
+  mediaType      String?
+  
+  igDescription  String?
+  igDate         DateTime?
+  igPublished    Boolean  @default(false)
+  
+  ttDescription  String?
+  ttDate         DateTime?
+  ttPublished    Boolean  @default(false)
+  
+  ytDescription  String?
+  ytDate         DateTime?
+  ytPublished    Boolean  @default(false)
+}

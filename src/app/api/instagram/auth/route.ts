@@ -1,0 +1,24 @@
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  const appId = process.env.INSTAGRAM_APP_ID;
+  const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || 'https://localhost:3000/api/instagram/callback'; // Meta API generally requires HTTPS even for localhost
+
+  if (!appId) {
+    return NextResponse.json({ 
+      error: "Veuillez configurer INSTAGRAM_APP_ID et INSTAGRAM_APP_SECRET dans votre .env" 
+    }, { status: 400 });
+  }
+
+  // Permissions nécessaires pour publier sur IG via l'API Graph Meta
+  const scopes = [
+    'instagram_basic',
+    'instagram_content_publish',
+    'pages_show_list',
+    'pages_read_engagement'
+  ].join(',');
+
+  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&display=page&extras={"setup":{"channel":"IG_API_ONBOARDING"}}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
+
+  return NextResponse.redirect(authUrl);
+}
