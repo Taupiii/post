@@ -71,13 +71,13 @@ export default function DashboardHeader() {
                 key={key}
                 href={s?.connected ? undefined : connectUrl}
                 className={`status-chip ${s?.connected ? 'status-chip--ok' : 'status-chip--err'}`}
-                title={s?.connected ? `Connecté : ${s.label}` : `Non connecté — cliquer pour authentifier`}
+                title={s?.connected ? `Connecté : ${s.label}` : `Erreur : ${s?.label || 'Non connecté'}`}
                 onClick={s?.connected ? e => e.preventDefault() : undefined}
               >
                 <span className="status-dot" />
                 <span className="status-chip-icon">{name}</span>
                 <span className="status-chip-label">
-                  {s?.connected ? s.label : 'Non connecté'}
+                  {s?.connected ? s.label : (s?.label || 'Non connecté')}
                 </span>
               </a>
             );
