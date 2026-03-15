@@ -30,8 +30,8 @@ export async function GET() {
       status.youtube.connected = true;
       status.youtube.label = channel?.snippet?.title || 'Connecté';
     }
-  } catch {
-    status.youtube.label = 'Erreur de connexion';
+  } catch (err) {
+    status.youtube.label = err instanceof Error ? `Erreur: ${err.message}` : 'Erreur de connexion';
   }
 
   // ── Instagram ──
@@ -47,8 +47,8 @@ export async function GET() {
       status.instagram.connected = true;
       status.instagram.label = res.data.username || res.data.name || 'Connecté';
     }
-  } catch {
-    status.instagram.label = 'Erreur de connexion';
+  } catch (err) {
+    status.instagram.label = err instanceof Error ? `Erreur: ${err.message}` : 'Erreur de connexion';
   }
 
   // ── TikTok ──
@@ -66,8 +66,8 @@ export async function GET() {
       status.tiktok.connected = true;
       status.tiktok.label = user?.display_name || user?.username || 'Connecté';
     }
-  } catch {
-    status.tiktok.label = 'Erreur de connexion';
+  } catch (err) {
+    status.tiktok.label = err instanceof Error ? `Erreur: ${err.message}` : 'Erreur de connexion';
   }
 
   return NextResponse.json(status);
