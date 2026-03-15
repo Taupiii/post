@@ -16,7 +16,10 @@ export async function GET() {
 
   const url = oauth2Client.generateAuthUrl({
     access_type: 'offline', // Nécessaire pour obtenir un refresh_token
-    scope: ['https://www.googleapis.com/auth/youtube.upload'],
+    scope: [
+      'https://www.googleapis.com/auth/youtube.upload',
+      'https://www.googleapis.com/auth/youtube.readonly'
+    ],
     prompt: 'consent' // Force l'écran de consentement pour être sûr d'avoir le refresh_token
   });
 
