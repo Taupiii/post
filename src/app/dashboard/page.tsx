@@ -24,6 +24,10 @@ export default function DashboardPage() {
   const [ttData, setTtData] = useState<PlatformData>({ ...INITIAL_PLATFORM });
   const [ytData, setYtData] = useState<PlatformData>({ ...INITIAL_PLATFORM });
 
+  const [igEnabled, setIgEnabled] = useState(true);
+  const [ttEnabled, setTtEnabled] = useState(true);
+  const [ytEnabled, setYtEnabled] = useState(true);
+
   // --- File handling ---
   const processFile = useCallback((newFile: File) => {
     if (newFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
@@ -98,9 +102,16 @@ export default function DashboardPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('igData', JSON.stringify(igData));
-      formData.append('ttData', JSON.stringify(ttData));
-      formData.append('ytData', JSON.stringify(ytData));
+      // On n'envoie les données que des plateformes activées
+      formData.append('igData', JSON.stringify(igEnabled ? igData : null));
+      formData.append('ttData', JSON.stringify(ttEnabled ? ttData : null));
+      formData.append('ytData', JSON.stringify(ytEnabled ? ytData : null));
+
+      if (!igEnabled && !ttEnabled && !ytEnabled) {
+        alert("Veuillez activer au moins une plateforme.");
+        setIsSubmitting(false);
+        return;
+      }
 
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const result = await res.json();
@@ -113,6 +124,9 @@ export default function DashboardPage() {
       setIgData({ ...INITIAL_PLATFORM });
       setTtData({ ...INITIAL_PLATFORM });
       setYtData({ ...INITIAL_PLATFORM });
+      setIgEnabled(true);
+      setTtEnabled(true);
+      setYtEnabled(true);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -193,18 +207,21 @@ export default function DashboardPage() {
                 title="Instagram Reels / Post"
                 data={igData} onChange={setIgData}
                 placeholder="La description Instagram s'affichera ici…"
+                enabled={igEnabled} onToggle={setIgEnabled}
               />
               <PlatformCard
                 id="tt" icon="TT" iconClass="icon-tt"
                 title="TikTok"
                 data={ttData} onChange={setTtData}
                 placeholder="La description TikTok s'affichera ici…"
+                enabled={ttEnabled} onToggle={setTtEnabled}
               />
               <PlatformCard
                 id="yt" icon="YT" iconClass="icon-yt"
                 title="YouTube Shorts"
                 data={ytData} onChange={setYtData}
                 placeholder="La description YouTube s'affichera ici…"
+                enabled={ytEnabled} onToggle={setYtEnabled}
               />
             </div>
 
