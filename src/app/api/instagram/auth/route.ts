@@ -11,8 +11,9 @@ export async function GET() {
   }
 
   // Permissions nécessaires pour publier sur IG via l'API Graph Meta
+  // Permissions nécessaires pour publier sur IG via l'API Graph Meta.
+  // Si l'erreur 'Invalid Scopes' persiste, c'est que l'application Meta n'a pas les bons "Produits" d'activés.
   const scopes = [
-    'instagram_basic',
     'instagram_content_publish',
     'pages_show_list',
     'pages_read_engagement'
