@@ -11,11 +11,14 @@ export async function GET() {
   }
 
   // Scopes validés pour API Graph v21.0 - Facebook Login for Business
+  // (Certains types d'Apps Facebook rejettent 'instagram_basic', donc on utilise les versions Business)
   const scopes = [
-    'instagram_basic',
-    'instagram_content_publish',
+    'instagram_manage_messages',
+    'instagram_manage_comments',
     'pages_show_list',
-    'pages_read_engagement'
+    'pages_read_engagement',
+    'pages_manage_metadata',
+    'pages_manage_posts'
   ].join(',');
 
   const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&display=page&extras={"setup":{"channel":"IG_API_ONBOARDING"}}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
