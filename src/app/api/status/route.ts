@@ -66,8 +66,10 @@ export async function GET() {
       status.tiktok.connected = true;
       status.tiktok.label = user?.display_name || user?.username || 'Connecté';
     }
-  } catch (err) {
-    status.tiktok.label = err instanceof Error ? `Erreur: ${err.message}` : 'Erreur de connexion';
+  } catch (err: any) {
+    const apiError = err.response?.data?.error?.message || err.response?.data?.message || err.message;
+    status.tiktok.label = `Erreur: ${apiError}`;
+    console.error("TikTok Status Error:", err.response?.data || err.message);
   }
 
   return NextResponse.json(status);
