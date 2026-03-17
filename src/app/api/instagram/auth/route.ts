@@ -10,17 +10,15 @@ export async function GET() {
     }, { status: 400 });
   }
 
-  // Scopes pour "Facebook Login for Business" avec la variante "API Graph pour Instagram"
-  // Ces scopes sont activés une fois la configuration FB Login for Business créée dans le portail Meta.
+  // Scopes pour "Instagram API with Instagram Login"
   const scopes = [
-    'instagram_basic',
-    'instagram_content_publish',
-    'pages_show_list',
-    'pages_read_engagement'
+    'instagram_business_basic',
+    'instagram_business_content_publish',
+    'instagram_business_manage_messages'
   ].join(',');
 
-  // Utilise le dialog Facebook (pas api.instagram.com) car la config est "Facebook Login for Business"
-  const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
+  // Endpoint Instagram Login (pas Facebook Login — requis pour le cas d'utilisation "Instagram")
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
 
   return NextResponse.redirect(authUrl);
 }
