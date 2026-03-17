@@ -11,7 +11,8 @@ export async function GET() {
   }
 
   // Scopes for TikTok Video Publishing API
-  const scopes = 'user.info.basic,video.upload,video.publish';
+  // Le produit 'Login Kit Web' fournit 'user.info.profile'
+  const scopes = 'user.info.profile,video.upload,video.publish';
   const state = Math.random().toString(36).substring(7); // Basic CSRF protection
 
   const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&response_type=code&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
