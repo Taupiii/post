@@ -10,16 +10,15 @@ export async function GET() {
     }, { status: 400 });
   }
 
-  // Permissions nécessaires pour publier sur IG via l'API Graph Meta
-  // Permissions nécessaires pour publier sur IG via l'API Graph Meta.
-  // Si l'erreur 'Invalid Scopes' persiste, c'est que l'application Meta n'a pas les bons "Produits" d'activés.
+  // Permissions pour "Instagram API with Instagram Login" (nouveau système Meta 2024+)
   const scopes = [
-    'instagram_content_publish',
-    'pages_show_list',
-    'pages_read_engagement'
+    'instagram_business_basic',
+    'instagram_business_content_publish',
+    'instagram_business_manage_messages'
   ].join(',');
 
-  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&display=page&extras={"setup":{"channel":"IG_API_ONBOARDING"}}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
+  // Nouveau endpoint d'authentification Instagram (pas Facebook)
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
 
   return NextResponse.redirect(authUrl);
 }

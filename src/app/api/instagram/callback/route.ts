@@ -23,74 +23,64 @@ export async function GET(req: Request) {
   }
 
   try {
-    // 1. Échanger le code contre un Short-Lived User Access Token
-    const tokenRes = await axios.get(`https://graph.facebook.com/v19.0/oauth/access_token`, {
-      params: {
+    // 1. Échanger le code contre un Short-Lived Token via le nouveau endpoint Instagram
+    const tokenRes = await axios.post('https://api.instagram.com/oauth/access_token', 
+      new URLSearchParams({
         client_id: appId,
-        redirect_uri: redirectUri,
         client_secret: appSecret,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
         code: code
-      }
-    });
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
 
     const shortLivedToken = tokenRes.data.access_token;
+    const userId = tokenRes.data.user_id;
 
     // 2. Échanger ce token court contre un Long-Lived Token (valable 60 jours)
-    const longTokenRes = await axios.get(`https://graph.facebook.com/v19.0/oauth/access_token`, {
+    const longTokenRes = await axios.get('https://graph.instagram.com/access_token', {
       params: {
-        grant_type: 'fb_exchange_token',
-        client_id: appId,
+        grant_type: 'ig_exchange_token',
         client_secret: appSecret,
-        fb_exchange_token: shortLivedToken
+        access_token: shortLivedToken
       }
     });
 
     const longLivedToken = longTokenRes.data.access_token;
 
-    // 3. Récupérer l'ID de la Page Facebook et le Compte Instagram Business lié
-    const pagesRes = await axios.get(`https://graph.facebook.com/v19.0/me/accounts`, {
-      params: { access_token: longLivedToken }
+    // 3. Récupérer les infos du profil Instagram
+    const profileRes = await axios.get(`https://graph.instagram.com/v21.0/me`, {
+      params: {
+        fields: 'user_id,username',
+        access_token: longLivedToken
+      }
     });
 
-    let igAccountId = null;
-    const pages = pagesRes.data.data;
-
-    if (pages && pages.length > 0) {
-      // On cherche la première page Facebook qui a un compte Instagram lié
-      for (const page of pages) {
-        try {
-          const igRes = await axios.get(`https://graph.facebook.com/v19.0/${page.id}?fields=instagram_business_account`, {
-            params: { access_token: longLivedToken }
-          });
-          if (igRes.data.instagram_business_account) {
-            igAccountId = igRes.data.instagram_business_account.id;
-            break;
-          }
-        } catch (e) {
-          // Ignorer si cette page plante (n'a pas les droits ou pas d'IG)
-        }
-      }
-    }
+    const username = profileRes.data.username || 'Inconnu';
+    const igUserId = profileRes.data.user_id || userId;
 
     return new NextResponse(`
       <html>
         <body style="font-family: sans-serif; padding: 2rem; background: #0f172a; color: white;">
-          <h2>Authentification Instagram (Meta) réussie ! 🎉</h2>
+          <h2>Authentification Instagram réussie ! 🎉</h2>
           
+          <p>Compte connecté : <strong>@${username}</strong></p>
+
           <p>Voici votre Token long-terme (valable 60 jours) :</p>
           <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; word-break: break-all;">
             <code>${longLivedToken}</code>
           </div>
 
-          <p>Voici votre ID de compte Instagram Business :</p>
+          <p>Voici votre ID de compte Instagram :</p>
           <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
-            <code>${igAccountId || "⚠️ Aucun compte Instagram Business lié trouvé sur votre Page Facebook."}</code>
+            <code>${igUserId}</code>
           </div>
 
           <p><strong>Étape suivante :</strong> Copiez ces infos dans votre fichier <code>.env</code> :</p>
           <pre style="background: black; padding: 1rem; border-radius: 8px; color: #10b981;">
 INSTAGRAM_ACCESS_TOKEN="${longLivedToken}"
-INSTAGRAM_ACCOUNT_ID="${igAccountId || 'METTRE_VOTRE_IG_ID_ICI'}"
+INSTAGRAM_ACCOUNT_ID="${igUserId}"
           </pre>
         </body>
       </html>
@@ -98,6 +88,6 @@ INSTAGRAM_ACCOUNT_ID="${igAccountId || 'METTRE_VOTRE_IG_ID_ICI'}"
 
   } catch (err: any) {
     console.error("Erreur OAuth Instagram callback :", err.response?.data || err.message);
-    return NextResponse.json({ error: err.response?.data?.error?.message || err.message }, { status: 500 });
+    return NextResponse.json({ error: err.response?.data?.error?.message || err.response?.data?.error_message || err.message }, { status: 500 });
   }
 }
