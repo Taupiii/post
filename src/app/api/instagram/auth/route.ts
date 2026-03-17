@@ -10,15 +10,15 @@ export async function GET() {
     }, { status: 400 });
   }
 
-  // Scopes pour "Instagram API with Instagram Login"
+  // Scopes validés pour API Graph v21.0 - Facebook Login for Business
   const scopes = [
-    'instagram_business_basic',
-    'instagram_business_content_publish',
-    'instagram_business_manage_messages'
+    'instagram_basic',
+    'instagram_content_publish',
+    'pages_show_list',
+    'pages_read_engagement'
   ].join(',');
 
-  // Endpoint Instagram Login (pas Facebook Login — requis pour le cas d'utilisation "Instagram")
-  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
+  const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&display=page&extras={"setup":{"channel":"IG_API_ONBOARDING"}}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
 
   return NextResponse.redirect(authUrl);
 }
