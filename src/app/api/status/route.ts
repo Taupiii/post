@@ -40,15 +40,17 @@ export async function GET() {
     if (!INSTAGRAM_ACCESS_TOKEN || !INSTAGRAM_ACCOUNT_ID) {
       status.instagram.label = 'Token manquant';
     } else {
-      const res = await axios.get(`https://graph.facebook.com/v19.0/${INSTAGRAM_ACCOUNT_ID}`, {
+      const res = await axios.get(`https://graph.facebook.com/v21.0/${INSTAGRAM_ACCOUNT_ID}`, {
         params: { fields: 'name,username', access_token: INSTAGRAM_ACCESS_TOKEN },
         timeout: 5000,
       });
       status.instagram.connected = true;
       status.instagram.label = res.data.username || res.data.name || 'Connecté';
     }
-  } catch (err) {
-    status.instagram.label = err instanceof Error ? `Erreur: ${err.message}` : 'Erreur de connexion';
+  } catch (err: any) {
+    const apiErr = err.response?.data?.error?.message || err.message;
+    console.error('Instagram status error:', err.response?.data || err.message);
+    status.instagram.label = `Erreur: ${apiErr}`;
   }
 
   // ── TikTok ──
