@@ -40,12 +40,13 @@ export async function GET() {
     if (!INSTAGRAM_ACCESS_TOKEN || !INSTAGRAM_ACCOUNT_ID) {
       status.instagram.label = 'Token manquant';
     } else {
-      const res = await axios.get(`https://graph.facebook.com/v21.0/${INSTAGRAM_ACCOUNT_ID}`, {
-        params: { fields: 'name,username', access_token: INSTAGRAM_ACCESS_TOKEN },
+      // Vérifie la validité du token Facebook via /me (fonctionne même sans Page Facebook liée)
+      const res = await axios.get('https://graph.facebook.com/v21.0/me', {
+        params: { fields: 'name', access_token: INSTAGRAM_ACCESS_TOKEN },
         timeout: 5000,
       });
       status.instagram.connected = true;
-      status.instagram.label = res.data.username || res.data.name || 'Connecté';
+      status.instagram.label = res.data.name || 'Connecté';
     }
   } catch (err: any) {
     const apiErr = err.response?.data?.error?.message || err.message;
