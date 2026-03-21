@@ -4,6 +4,7 @@ import { google } from 'googleapis';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { sendFailureAlert } from '@/lib/email';
 
 type Platform = 'ig' | 'tt' | 'yt';
 
@@ -189,7 +190,10 @@ export async function GET(req: Request) {
           }
           successfulIds.push(post.id);
         } catch (err: any) {
+          const errMsg = err.response?.data?.error?.message || err.message || 'Erreur inconnue';
           console.error(`[PUBLISH ERR] ${platform.toUpperCase()} post ${post.id}:`, err.response?.data || err.message);
+          // Envoi de l'alerte email en cas d'échec
+          await sendFailureAlert(platform, post.id, errMsg).catch(e => console.error('[EMAIL ERR]', e.message));
         }
       }
 
