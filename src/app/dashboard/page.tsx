@@ -208,6 +208,7 @@ export default function DashboardPage() {
                 data={igData} onChange={setIgData}
                 placeholder="La description Instagram s'affichera ici…"
                 enabled={igEnabled} onToggle={setIgEnabled}
+                maxLength={2200}
               />
               <PlatformCard
                 id="tt" icon="TT" iconClass="icon-tt"
@@ -215,6 +216,7 @@ export default function DashboardPage() {
                 data={ttData} onChange={setTtData}
                 placeholder="La description TikTok s'affichera ici…"
                 enabled={ttEnabled} onToggle={setTtEnabled}
+                maxLength={2200}
               />
               <PlatformCard
                 id="yt" icon="YT" iconClass="icon-yt"
@@ -222,6 +224,7 @@ export default function DashboardPage() {
                 data={ytData} onChange={setYtData}
                 placeholder="La description YouTube s'affichera ici…"
                 enabled={ytEnabled} onToggle={setYtEnabled}
+                maxLength={5000}
               />
             </div>
 

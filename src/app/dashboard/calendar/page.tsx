@@ -2,16 +2,18 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import PlatformEditCard from '@/components/PlatformEditCard';
+import { toZonedTime } from 'date-fns-tz';
 
-// Convertit une date ISO (UTC) en chaine locale pour input datetime-local
-function toLocalInput(isoString: string): string {
-  const d = new Date(isoString);
-  // Soustraire l'offset pour obtenir l'heure locale
-  const offset = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+const PARIS_TZ = 'Europe/Paris';
+
+// Convertit une date ISO (UTC) → heure de Paris pour input datetime-local
+function toParisInput(isoString: string): string {
+  const parisDate = toZonedTime(new Date(isoString), PARIS_TZ);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${parisDate.getFullYear()}-${pad(parisDate.getMonth() + 1)}-${pad(parisDate.getDate())}T${pad(parisDate.getHours())}:${pad(parisDate.getMinutes())}`;
 }
 
-// Formate une date ISO en format français 24h
+// Formate une date ISO en format français 24h (heure de Paris)
 function formatFR(isoString: string | null): string {
   if (!isoString) return '';
   return new Date(isoString).toLocaleString('fr-FR', {
@@ -21,6 +23,7 @@ function formatFR(isoString: string | null): string {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: PARIS_TZ,
   });
 }
 
@@ -170,9 +173,9 @@ export default function CalendarPage() {
 
 // ------ Composant subalterne ------
 function EditModal({ post, onClose, onRefresh }: { post: PostRecord, onClose: () => void, onRefresh: () => void }) {
-  const [igData, setIgData] = useState({ description: post.igDescription || '', date: post.igDate ? toLocalInput(post.igDate) : '' });
-  const [ttData, setTtData] = useState({ description: post.ttDescription || '', date: post.ttDate ? toLocalInput(post.ttDate) : '' });
-  const [ytData, setYtData] = useState({ description: post.ytDescription || '', date: post.ytDate ? toLocalInput(post.ytDate) : '' });
+  const [igData, setIgData] = useState({ description: post.igDescription || '', date: post.igDate ? toParisInput(post.igDate) : '' });
+  const [ttData, setTtData] = useState({ description: post.ttDescription || '', date: post.ttDate ? toParisInput(post.ttDate) : '' });
+  const [ytData, setYtData] = useState({ description: post.ytDescription || '', date: post.ytDate ? toParisInput(post.ytDate) : '' });
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
@@ -212,13 +215,13 @@ function EditModal({ post, onClose, onRefresh }: { post: PostRecord, onClose: ()
         
         <div className="modal-scrollable">
           {post.igDate !== null && !post.igPublished && (
-            <PlatformEditCard id="edit-ig" title="Instagram" data={igData} onChange={setIgData} />
+            <PlatformEditCard id="edit-ig" title="Instagram" data={igData} onChange={setIgData} maxLength={2200} />
           )}
           {post.ttDate !== null && !post.ttPublished && (
-            <PlatformEditCard id="edit-tt" title="TikTok" data={ttData} onChange={setTtData} />
+            <PlatformEditCard id="edit-tt" title="TikTok" data={ttData} onChange={setTtData} maxLength={2200} />
           )}
           {post.ytDate !== null && !post.ytPublished && (
-            <PlatformEditCard id="edit-yt" title="YouTube Shorts" data={ytData} onChange={setYtData} />
+            <PlatformEditCard id="edit-yt" title="YouTube Shorts" data={ytData} onChange={setYtData} maxLength={5000} />
           )}
         </div>
 
