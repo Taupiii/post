@@ -8,10 +8,12 @@ import { sendFailureAlert } from '@/lib/email';
 
 type Platform = 'ig' | 'tt' | 'yt';
 
-const PLATFORM_FIELDS: Record<Platform, { date: string; published: string; description: string }> = {
-  ig: { date: 'igDate', published: 'igPublished', description: 'igDescription' },
-  tt: { date: 'ttDate', published: 'ttPublished', description: 'ttDescription' },
-  yt: { date: 'ytDate', published: 'ytPublished', description: 'ytDescription' },
+const MAX_RETRIES = 3;
+
+const PLATFORM_FIELDS: Record<Platform, { date: string; published: string; description: string; retries: string }> = {
+  ig: { date: 'igDate', published: 'igPublished', description: 'igDescription', retries: 'igRetries' },
+  tt: { date: 'ttDate', published: 'ttPublished', description: 'ttDescription', retries: 'ttRetries' },
+  yt: { date: 'ytDate', published: 'ytPublished', description: 'ytDescription', retries: 'ytRetries' },
 };
 
 async function publishToTikTok(post: any) {
@@ -23,8 +25,9 @@ async function publishToTikTok(post: any) {
 
   // TikTok Direct Post API requires the video file to be accessible via a public URL, 
   // similar to Instagram Meta Graph.
-  const baseUrl = process.env.PUBLIC_URL || 'https://kwikwiii-demo.vercel.app';
+  const baseUrl = process.env.PUBLIC_URL || 'https://postrs.kwikwiii.online';
   const mediaPublicUrl = `${baseUrl}${post.mediaUrl}`;
+  console.log(`[TIKTOK] URL vidéo: ${mediaPublicUrl}`);
 
   if (post.mediaType !== 'video') {
     throw new Error("L'API vidéo TikTok n'accepte que les vidéos (pas les photos).");
@@ -71,8 +74,9 @@ async function publishToInstagram(post: any) {
   // In development (localhost), Instagram servers cannot access files on your local machine.
   // For this mock/demo, we assume the server is accessible publicly via an env variable,
   // or we fallback to a placeholder public image just to prove the API call works in dev.
-  const baseUrl = process.env.PUBLIC_URL || 'https://kwikwiii-demo.vercel.app';
+  const baseUrl = process.env.PUBLIC_URL || 'https://postrs.kwikwiii.online';
   const mediaPublicUrl = `${baseUrl}${post.mediaUrl}`;
+  console.log(`[INSTAGRAM] URL média: ${mediaPublicUrl}`);
 
   // 1. Create Media Container
   const createUrl = `https://graph.facebook.com/v19.0/${igAccountId}/media`;
@@ -89,11 +93,23 @@ async function publishToInstagram(post: any) {
 
   const creationId = containerRes.data.id;
 
-  // Si c'est une vidéo longue (Reels), Meta prend du temps à la traiter.
-  // En production absolue, il faut faire du polling sur le statut.
-  // Ici on fait une pause basique de 5 secondes pour laisser Meta ingest la vidéo.
+  // Pour les vidéos (Reels), Meta doit d'abord traiter la vidéo avant qu'on puisse la publier.
+  // On fait du polling sur le statut jusqu'à ce que ce soit FINISHED (max 60s)
   if (post.mediaType === 'video') {
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    const statusUrl = `https://graph.facebook.com/v19.0/${creationId}`;
+    let status = '';
+    let attempts = 0;
+    while (status !== 'FINISHED' && attempts < 12) {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // attendre 5s
+      const statusRes = await axios.get(statusUrl, {
+        params: { fields: 'status_code', access_token: token }
+      });
+      status = statusRes.data.status_code;
+      console.log(`[INSTAGRAM] Statut conteneur (tentative ${attempts + 1}): ${status}`);
+      if (status === 'ERROR') throw new Error('Meta a rejeté la vidéo lors du traitement.');
+      attempts++;
+    }
+    if (status !== 'FINISHED') throw new Error('Timeout : Meta n\'a pas traité la vidéo à temps (60s).');
   }
 
   // 2. Publish the Container
@@ -138,7 +154,7 @@ async function publishToYouTube(post: any) {
         categoryId: '22', // Catégorie "People & Blogs" par défaut
       },
       status: {
-        privacyStatus: 'private', // On le met en privé pour éviter les accidents en dev. Mettre 'public' plus tard.
+        privacyStatus: 'public', // Public — la vidéo sera visible immédiatement
         selfDeclaredMadeForKids: false,
       },
     },
@@ -161,14 +177,15 @@ export async function GET(req: Request) {
     const results: Record<Platform, number> = { ig: 0, tt: 0, yt: 0 };
 
     for (const [platform, fields] of Object.entries(PLATFORM_FIELDS) as [Platform, typeof PLATFORM_FIELDS[Platform]][]) {
-      // Find posts due for this platform
+      // Find posts due for this platform (excluding posts that hit max retries)
       const duePosts = await prisma.post.findMany({
         where: {
           [fields.date]:      { lte: now },
           [fields.published]: false,
           [fields.description]: { not: null },
+          [fields.retries]:   { lt: MAX_RETRIES },
         },
-        select: { id: true, [fields.description]: true, mediaUrl: true },
+        select: { id: true, [fields.description]: true, mediaUrl: true, mediaType: true, [fields.retries]: true },
       });
 
       if (duePosts.length === 0) continue;
@@ -176,7 +193,8 @@ export async function GET(req: Request) {
       const successfulIds: string[] = [];
 
       for (const post of duePosts) {
-        console.log(`[PUBLISH] Tentative ${platform.toUpperCase()} — post ${post.id}`);
+        const currentRetries: number = (post as any)[fields.retries] ?? 0;
+        console.log(`[PUBLISH] Tentative ${platform.toUpperCase()} — post ${post.id} (essai ${currentRetries + 1}/${MAX_RETRIES})`);
         try {
           if (platform === 'yt') {
             await publishToYouTube(post);
@@ -190,10 +208,36 @@ export async function GET(req: Request) {
           }
           successfulIds.push(post.id);
         } catch (err: any) {
-          const errMsg = err.response?.data?.error?.message || err.message || 'Erreur inconnue';
-          console.error(`[PUBLISH ERR] ${platform.toUpperCase()} post ${post.id}:`, err.response?.data || err.message);
-          // Envoi de l'alerte email en cas d'échec
-          await sendFailureAlert(platform, post.id, errMsg).catch(e => console.error('[EMAIL ERR]', e.message));
+          const apiData = err.response?.data;
+          const errMsg = apiData?.error?.message || apiData?.message || err.message || 'Erreur inconnue';
+          const errCode = apiData?.error?.code || apiData?.error?.type || apiData?.error?.error_code || '';
+          console.error(`[PUBLISH ERR] ${platform.toUpperCase()} post ${post.id}:`);
+          console.error(`  → Message: ${errMsg}`);
+          if (errCode) console.error(`  → Code: ${errCode}`);
+          if (apiData)  console.error(`  → API Response:`, JSON.stringify(apiData, null, 2));
+
+          const newRetries = currentRetries + 1;
+          // Incrémenter le compteur d'échecs
+          await prisma.post.update({
+            where: { id: post.id },
+            data: { [fields.retries]: newRetries },
+          });
+
+          // Envoyer l'email UNIQUEMENT à la première tentative
+          if (currentRetries === 0) {
+            await sendFailureAlert(platform, post.id, {
+              message: errMsg,
+              code: errCode || undefined,
+              apiResponse: apiData || undefined,
+            }).catch(e => console.error('[EMAIL ERR]', e.message));
+            console.log(`[PUBLISH] Email d'alerte envoyé (1ère erreur). Plus d'emails pour ce post sur ${platform.toUpperCase()}.`);
+          } else {
+            console.log(`[PUBLISH] Échec silencieux (tentative ${newRetries}/${MAX_RETRIES}) — pas d'email.`);
+          }
+
+          if (newRetries >= MAX_RETRIES) {
+            console.error(`[PUBLISH] Post ${post.id} abandonné après ${MAX_RETRIES} tentatives sur ${platform.toUpperCase()}.`);
+          }
         }
       }
 

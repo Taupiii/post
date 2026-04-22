@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { prisma } from '@/lib/prisma';
-import { toZonedTime } from 'date-fns-tz';
+import { fromZonedTime } from 'date-fns-tz';
 import path from 'path';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public/uploads');
@@ -14,10 +14,9 @@ function parseJSON(raw: FormDataEntryValue | null): Record<string, string> {
 
 function parseParisDate(dateStr: string | null | undefined): Date | null {
   if (!dateStr) return null;
-  // `dateStr` is typically "YYYY-MM-DDTHH:mm".
-  // `toZonedTime` will treat the local string as if it was in the specified timezone
-  // and convert it to a proper global Date object.
-  return toZonedTime(dateStr, 'Europe/Paris');
+  // dateStr est au format "YYYY-MM-DDTHH:mm" en heure de Paris
+  // fromZonedTime convertit l'heure Paris → UTC pour la DB
+  return fromZonedTime(dateStr, 'Europe/Paris');
 }
 
 export async function POST(req: Request) {

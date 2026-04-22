@@ -18,12 +18,15 @@ model Post {
   igDescription  String?
   igDate         DateTime?
   igPublished    Boolean  @default(false)
+  igRetries      Int      @default(0)
   
   ttDescription  String?
   ttDate         DateTime?
   ttPublished    Boolean  @default(false)
+  ttRetries      Int      @default(0)
   
   ytDescription  String?
   ytDate         DateTime?
   ytPublished    Boolean  @default(false)
+  ytRetries      Int      @default(0)
 }
