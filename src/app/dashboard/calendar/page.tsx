@@ -1,7 +1,44 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import PlatformEditCard from '@/components/PlatformEditCard';
+
+// ---- VideoPlayer : miniature + player on click ----
+function VideoPlayer({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  const handlePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const vid = videoRef.current;
+    if (!vid) return;
+    if (playing) {
+      vid.pause();
+      setPlaying(false);
+    } else {
+      vid.play();
+      setPlaying(true);
+    }
+  };
+
+  return (
+    <div className="video-player-wrapper" onClick={handlePlay} title={playing ? 'Pause' : 'Lire la vidéo'}>
+      <video
+        ref={videoRef}
+        src={src}
+        className="media-thumb"
+        preload="metadata"
+        playsInline
+        onEnded={() => setPlaying(false)}
+      />
+      {!playing && (
+        <div className="video-play-overlay">
+          <div className="video-play-btn">▶</div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface PostRecord {
   id: string;
@@ -76,7 +113,7 @@ export default function CalendarPage() {
             <div key={post.id} className="post-item glass-panel platform-card-inner">
               <div className="post-media">
                 {post.mediaType === 'video' ? (
-                  <video src={post.mediaUrl} className="media-thumb" muted />
+                  <VideoPlayer src={post.mediaUrl} />
                 ) : (
                   <img src={post.mediaUrl} className="media-thumb" alt="Preview" />
                 )}
