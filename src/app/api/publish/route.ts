@@ -38,15 +38,16 @@ async function publishToTikTok(post: any) {
   // Dans la version basique, on utilise pull_from_url
   const body = {
     post_info: {
-      title: post.ttDescription || 'Vidéo Kwikwiii',
-      privacy_level: 'PRIVATE', // Private en dev pour éviter la pollution
+      title: (post.ttDescription || 'Vidéo Kwikwiii').slice(0, 150),
+      privacy_level: 'SELF_ONLY', // Valeurs valides: PUBLIC_TO_EVERYONE, MUTUAL_FOLLOW_FRIENDS, FOLLOWER_OF_CREATOR, SELF_ONLY
       disable_comment: false,
       disable_duet: false,
-      disable_stitch: false
+      disable_stitch: false,
+      video_cover_timestamp_ms: 1000,
     },
     source_info: {
       source: 'PULL_FROM_URL',
-      video_url: mediaPublicUrl
+      video_url: mediaPublicUrl,
     }
   };
 
