@@ -4,13 +4,10 @@ import { existsSync } from 'fs';
 import { prisma } from '@/lib/prisma';
 import { fromZonedTime } from 'date-fns-tz';
 import path from 'path';
-import ffmpeg from 'fluent-ffmpeg';
-import ffprobeInstaller from '@ffprobe-installer/ffprobe';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 
-// Utilise ffprobe embarqué si disponible, sinon le ffprobe système
-try {
-  ffmpeg.setFfprobePath(ffprobeInstaller.path);
-} catch {}
+const execFileAsync = promisify(execFile);
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public/uploads');
 
@@ -27,24 +24,20 @@ function parseParisDate(dateStr: string | null | undefined): Date | null {
   return fromZonedTime(dateStr, 'Europe/Paris');
 }
 
-// Convertit une vidéo en MP4 H.264 avec ffmpeg
-function convertToMp4(inputPath: string, outputPath: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    ffmpeg(inputPath)
-      .outputOptions([
-        '-c:v libx264',   // Codec vidéo H.264
-        '-crf 23',        // Qualité (18=haute, 28=basse) — 23 est le défaut
-        '-preset fast',   // Vitesse de conversion
-        '-c:a aac',       // Codec audio AAC
-        '-b:a 128k',      // Bitrate audio
-        '-movflags +faststart', // Optimise pour le streaming web
-        '-pix_fmt yuv420p',     // Compatible avec tous les players
-      ])
-      .output(outputPath)
-      .on('end', () => resolve())
-      .on('error', (err) => reject(new Error(`Conversion ffmpeg échouée: ${err.message}`)))
-      .run();
-  });
+// Convertit une vidéo en MP4 H.264 via le ffmpeg système
+async function convertToMp4(inputPath: string, outputPath: string): Promise<void> {
+  await execFileAsync('ffmpeg', [
+    '-i', inputPath,
+    '-c:v', 'libx264',
+    '-crf', '23',
+    '-preset', 'fast',
+    '-c:a', 'aac',
+    '-b:a', '128k',
+    '-movflags', '+faststart',
+    '-pix_fmt', 'yuv420p',
+    '-y', // écraser si le fichier existe
+    outputPath,
+  ]);
 }
 
 export async function POST(req: Request) {
