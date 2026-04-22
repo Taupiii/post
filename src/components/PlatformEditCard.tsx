@@ -68,7 +68,7 @@ export default function PlatformEditCard({ id, title, data, onChange, maxLength 
         <label className="form-label" style={{ fontSize: '0.8rem' }}>Description</label>
         <textarea
           className="form-textarea"
-          rows={3}
+          rows={6}
           value={data.description}
           maxLength={maxLength}
           onChange={e => onChange({ ...data, description: e.target.value })}

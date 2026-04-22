@@ -64,7 +64,7 @@ export default function PlatformCard({ id, icon, iconClass, title, data, onChang
             <textarea
               id={`${id}-desc`}
               className="form-textarea"
-              rows={4}
+              rows={8}
               value={data.description}
               onChange={handleDescriptionChange}
               placeholder={placeholder}
