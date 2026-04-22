@@ -3,6 +3,27 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import PlatformEditCard from '@/components/PlatformEditCard';
 
+// Convertit une date ISO (UTC) en chaine locale pour input datetime-local
+function toLocalInput(isoString: string): string {
+  const d = new Date(isoString);
+  // Soustraire l'offset pour obtenir l'heure locale
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+}
+
+// Formate une date ISO en format français 24h
+function formatFR(isoString: string | null): string {
+  if (!isoString) return '';
+  return new Date(isoString).toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
 // ---- VideoPlayer : miniature + player on click ----
 function VideoPlayer({ src }: { src: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -124,6 +145,11 @@ export default function CalendarPage() {
                    {post.ttDate && <span className={`badge badge-tt ${post.ttPublished ? 'published' : ''}`}>TT {post.ttPublished ? '✓' : ''}</span>}
                    {post.ytDate && <span className={`badge badge-yt ${post.ytPublished ? 'published' : ''}`}>YT {post.ytPublished ? '✓' : ''}</span>}
                 </div>
+                <div className="post-dates" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  {post.igDate && <span>📸 {formatFR(post.igDate)}</span>}
+                  {post.ttDate && <span>🎵 {formatFR(post.ttDate)}</span>}
+                  {post.ytDate && <span>▶️ {formatFR(post.ytDate)}</span>}
+                </div>
                 <div className="post-actions">
                   <button className="btn btn-primary btn-sm" onClick={() => setEditingPost(post)}>Modifier</button>
                   <button className="btn btn-outline btn-sm" onClick={() => handleDelete(post.id)}>Annuler</button>
@@ -144,9 +170,9 @@ export default function CalendarPage() {
 
 // ------ Composant subalterne ------
 function EditModal({ post, onClose, onRefresh }: { post: PostRecord, onClose: () => void, onRefresh: () => void }) {
-  const [igData, setIgData] = useState({ description: post.igDescription || '', date: post.igDate ? new Date(post.igDate).toISOString().slice(0, 16) : '' });
-  const [ttData, setTtData] = useState({ description: post.ttDescription || '', date: post.ttDate ? new Date(post.ttDate).toISOString().slice(0, 16) : '' });
-  const [ytData, setYtData] = useState({ description: post.ytDescription || '', date: post.ytDate ? new Date(post.ytDate).toISOString().slice(0, 16) : '' });
+  const [igData, setIgData] = useState({ description: post.igDescription || '', date: post.igDate ? toLocalInput(post.igDate) : '' });
+  const [ttData, setTtData] = useState({ description: post.ttDescription || '', date: post.ttDate ? toLocalInput(post.ttDate) : '' });
+  const [ytData, setYtData] = useState({ description: post.ytDescription || '', date: post.ytDate ? toLocalInput(post.ytDate) : '' });
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {

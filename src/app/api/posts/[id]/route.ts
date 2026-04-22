@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
-import { toZonedTime } from 'date-fns-tz';
+import { fromZonedTime } from 'date-fns-tz';
 
+// dateStr vient d'un input datetime-local (heure locale Paris) → on la convertit en UTC pour la DB
 function parseParisDate(dateStr: string | null | undefined): Date | null {
   if (!dateStr) return null;
-  return toZonedTime(dateStr, 'Europe/Paris');
+  return fromZonedTime(dateStr, 'Europe/Paris');
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
