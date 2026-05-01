@@ -16,7 +16,10 @@ const NEEDS_CONVERSION = ['video/quicktime', 'video/webm', 'video/x-msvideo', 'v
 
 function parseJSON(raw: FormDataEntryValue | null): Record<string, string> {
   if (!raw || typeof raw !== 'string') return {};
-  try { return JSON.parse(raw); } catch { return {}; }
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch { return {}; }
 }
 
 function parseParisDate(dateStr: string | null | undefined): Date | null {
