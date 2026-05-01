@@ -101,13 +101,21 @@ async function publishToInstagram(post: any) {
     let status = '';
     let attempts = 0;
     while (status !== 'FINISHED' && attempts < 12) {
-      await new Promise(resolve => setTimeout(resolve, 5000)); // attendre 5s
+      await new Promise(resolve => setTimeout(resolve, 5000));
       const statusRes = await axios.get(statusUrl, {
-        params: { fields: 'status_code', access_token: token }
+        params: { fields: 'status_code,video_status,error_message,error_code', access_token: token }
       });
-      status = statusRes.data.status_code;
-      console.log(`[INSTAGRAM] Statut conteneur (tentative ${attempts + 1}): ${status}`);
-      if (status === 'ERROR') throw new Error('Meta a rejeté la vidéo lors du traitement.');
+      const rawData = statusRes.data;
+      status = rawData.status_code;
+      const videoStatus = rawData.video_status;
+      const errorMessage = rawData.error_message;
+      const errorCode = rawData.error_code;
+      console.log(`[INSTAGRAM] Statut conteneur (tentative ${attempts + 1}): status_code=${status} | video_status=${videoStatus ?? 'n/a'} | error_message=${errorMessage ?? 'n/a'} | error_code=${errorCode ?? 'n/a'}`);
+      if (status === 'ERROR') {
+        console.error('[INSTAGRAM] Réponse complète Meta au rejet:', JSON.stringify(rawData, null, 2));
+        const detail = [errorMessage, videoStatus, errorCode ? `code ${errorCode}` : ''].filter(Boolean).join(' / ');
+        throw new Error(`Meta a rejeté la vidéo: ${detail || 'raison inconnue'}`);
+      }
       attempts++;
     }
     if (status !== 'FINISHED') throw new Error('Timeout : Meta n\'a pas traité la vidéo à temps (60s).');
